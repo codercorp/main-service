@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automotive Shop - Register Vehicle</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="overlay"></div>
+  <main class="container">
+    <section class="form-card">
+      <h1>Vehicle Check-in / Registration</h1>
+      <form id="regForm" class="form">
+        <fieldset>
+          <legend>Customer</legend>
+          <div class="row">
+            <label> Name
+              <input id="cname" required />
+            </label>
+            <label> Phone
+              <input id="cphone" required />
+            </label>
+          </div>
+          <div class="row">
+            <label> Email
+              <input id="cemail" />
+            </label>
+            <label> Address
+              <input id="caddr" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Vehicle</legend>
+          <div class="row">
+            <label> Registration Number
+              <input id="vreg" required />
+            </label>
+            <label> Make
+              <input id="vmake" />
+            </label>
+          </div>
+          <div class="row">
+            <label> Model
+              <input id="vmodel" />
+            </label>
+            <label> Type
+              <select id="vtype">
+                <option>hatchback</option>
+                <option>sedan</option>
+                <option>muv</option>
+                <option>suv</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Initial Service (optional)</legend>
+          <label> Type (yearly/maintenance/accident)
+            <input id="rtype" />
+          </label>
+          <label> Description
+            <textarea id="rdesc"></textarea>
+          </label>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" class="btn">Register Vehicle</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="result-card" id="resultCard" aria-live="polite">
+      <div class="result-content" id="resultContent">
+        <p class="placeholder">After registration you'll see a confirmation here.</p>
+      </div>
+    </aside>
+  </main>
+
+<script>
+// Submit form to main-service and show concise message on the right (relative URL)
+const form = document.getElementById('regForm');
+const resultContent = document.getElementById('resultContent');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    customer: {
+      name: document.getElementById('cname').value,
+      phone: document.getElementById('cphone').value,
+      email: document.getElementById('cemail').value,
+      address: document.getElementById('caddr').value
+    },
+    vehicle: {
+      registrationNumber: document.getElementById('vreg').value,
+      make: document.getElementById('vmake').value,
+      model: document.getElementById('vmodel').value,
+      type: document.getElementById('vtype').value
+    },
+    record: {
+      type: document.getElementById('rtype').value,
+      description: document.getElementById('rdesc').value,
+      date: new Date().toISOString()
+    }
+  };
+
+  resultContent.innerHTML = '<p class="loading">Registering…</p>';
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error('Server returned ' + res.status + ' — ' + text);
+    }
+
+    const data = await res.json();
+    const cust = data.customer || payload.customer;
+    const vehicle = data.vehicle || payload.vehicle;
+    const custName = cust && cust.getName ? cust.getName() : (cust.name || payload.customer.name || 'Customer');
+    const regNo = vehicle && vehicle.registrationNumber ? vehicle.registrationNumber : payload.vehicle.registrationNumber;
+
+    resultContent.innerHTML = `
+      <h2>Vehicle Registered</h2>
+      <p><strong>${escapeHtml(cust.name || payload.customer.name)}</strong></p>
+      <p>Reg. No.: <strong>${escapeHtml(regNo)}</strong></p>
+      <p class="muted">Saved to database.</p>
+    `;
+
+    document.getElementById('vreg').value = '';
+    document.getElementById('vmake').value = '';
+    document.getElementById('vmodel').value = '';
+    document.getElementById('rtype').value = '';
+    document.getElementById('rdesc').value = '';
+
+  } catch (err) {
+    console.error(err);
+    resultContent.innerHTML = `<p class="error">Error: ${escapeHtml(err.message)}</p>`;
+  }
+});
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/[&<>"']/g, function (m) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+  });
+}
+</script>
+</body>
+</html>

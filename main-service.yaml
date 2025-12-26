@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main-service
+  namespace: automotive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: main-service
+  template:
+    metadata:
+      labels:
+        app: main-service
+    spec:
+      containers:
+        - name: main-service
+          image: erdigvijay/devops_repo:main-service-latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: VEHICLE_SVC
+              value: http://vehicle-service:8081/api/vehicle
+            - name: CUSTOMER_SVC
+              value: http://customer-service:8082/api/customer
+            - name: RECORD_SVC
+              value: http://record-service:8083/api/servicerecord
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: main-service
+  namespace: automotive
+spec:
+  selector:
+    app: main-service
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: NodePort
